@@ -1,0 +1,235 @@
+@charset "UTF-8";
+
+/**
+ * 去单位
+ * @param  {number} $n 带单位的数字
+ * @return {number}    去掉单位
+ */
+@function remove-unit($n) {
+    @return $n / ($n * 0 + 1);
+}
+
+/**
+ * 
+ */
+// 
+$divide: 320/12 !default;
+// psd尺寸宽度
+$pswWidth: 1000px !default;
+// 设定在psd尺寸时，单位rem的px值
+// 对应在js更改html font size的js的 document.documentElement.getBoundingClientRect().width / $divide
+$ppr: remove-unit($pswWidth) / $divide;
+
+/**
+ * @description 针对多个值转换
+ * @param {String} $name - 属性名
+ * @param {number} $value - 设计稿元素尺寸
+ * @include pxs2rem(margin, 240, 200);
+ */
+// @mixin pxs2rem($name, $values...) {
+//     $max: length($values);
+//     $remValues: '';
+//     @for $i from 1 through $max {
+//         $value: nth($values, $i) * $divide / $pswWidth;
+//         $remValues: #{$remValues + $value}rem;
+//         @if $i < $max {
+//             $remValues: #{$remValues + " "};
+//         }
+//     }
+//     #{$name}: $remValues;
+// }
+
+/**
+ * @description 根据设计稿元素对应尺寸转换为rem单位
+ * @description 基数：以設計稿為750為例，則基數為75
+ * @param {String} $name - 属性名
+ * @param {number} $px - 设计稿元素尺寸
+ * @include px2rem(width, 240);
+ */
+@mixin px2rem($name, $px){
+    #{$name}: px2rem($px);
+}
+@function px2rem($px){
+    @return remove-unit($px) / $ppr * 1rem;
+}
+@function rem2px($rem){
+    @return remove-unit($rem) * $ppr * 1px;
+}
+/**
+ * @description 在不同dpr下设置对应的px
+ * @param {String} $name - 属性名
+ * @param {number} $px - 设计稿元素尺寸
+ * @include px2px(font-size, 32);
+ */
+@mixin px2px($name, $px){
+    #{$name}: round($px / 2) * 1;
+    [data-dpr="2"] &{
+        #{$name}: $px * 1;
+    }
+    [data-dpr="3"] &{
+        #{$name}: round($px / 2 * 3) * 1;
+    }
+}
+
+/**
+ * @description 在不同dpr下设置对应的px（适用于同时设置多个属性）
+ * @param {object} $maps - 属性名
+ * @param {number} $dpr - 设置支持的最高像素比，默认为3
+ * @include pxs2px($maps: (
+        width: 200px,
+        height: 200px
+    ));
+ */
+// @mixin pxs2px($maps, $dpr : 3){
+//     @for $i from 1 through $dpr {
+//         $multiple: 1;
+//         $num: 1;
+//         @if $i == 1 {
+//             $num: 2;
+//             @each $type, $val in $maps{
+//                 #{$type}: ceil($val / $num) * $multiple;
+//             }
+//         }@else{
+//             $multiple: $multiple * $i;
+//             $num: 2;
+//             [data-dpr="#{$i}"] &{
+//                 @each $type, $val in $maps{
+//                     #{$type}: ceil($val / $num) * $multiple;
+//                 }
+//             }
+//         }
+        
+//     }
+// }
+
+// 精灵图操作
+$_pc-sprite-link: "-";
+$_pc-sprite-ps: (hover active disabled);
+/**
+ * 获取一个 sprite-map ，内部使用
+ * @param  {String} $sprite-dir 相对于images_dir的图片目录文件夹路径
+ * @return {String}             sprite-map
+ * @example  
+ *     $sprite-map: _m-sprite-get-map('support/icon');
+ */
+@function _m-sprite-get-map($sprite-dir){
+    @return sprite-map(
+        "#{$sprite-dir}/*.png"
+        ,$layout: vertical
+        // ,$sort-by: "width"
+        ,$spacing: 1px
+    );
+}
+/**
+ * 生成公共样式，用于生成 %extend
+ * @param  {String} $sprite-dir 相对于images_dir的图片目录文件夹路径
+ * @return {mixin}             
+ * @example
+ *     %support-icon{
+ *         @include _m-sprite('support/icon');
+ *     }
+ */
+@mixin _m-sprite($sprite-dir){
+    $sprite-map: _m-sprite-get-map($sprite-dir);
+    // 执行 sprite-url才会生成精灵图
+    $url: sprite-url($sprite-map);
+    $background-size: remove-unit(image-width(sprite-path($sprite-map))) / $ppr * 1rem;
+    background: $url 0/#{$background-size} no-repeat;
+}
+// 获取位置
+@function _m-sprite-position($sprite-dir ,$sprite-name){
+    $sprite-map: _m-sprite-get-map($sprite-dir);
+
+    $_path: sprite-path($sprite-map);
+    $width: image-width($_path);
+    $height: image-height($_path);
+
+    $_file: sprite-file($sprite-map, $sprite-name);
+    $icon-width: image-width($_file);
+    $icon-height: image-height($_file);
+
+    $_pos: sprite-position($sprite-map, $sprite-name);
+    $pos-x: nth($_pos, 1);
+    $pos-y: nth($_pos, 2);
+
+    $_pos-x: $icon-width - $width ;
+    $_pos-y: $icon-height - $height ;
+    // @debug $icon-name , $_pos-x $_pos-y;
+    $_pos-x: if($_pos-x != 0px ,($pos-x + 0px) / $_pos-x * 100% ,0);
+    $_pos-y: if($_pos-y != 0px ,($pos-y + 0px) / $_pos-y * 100% ,0);
+
+    @return $_pos-x $_pos-y;
+}
+// 获取宽 rem
+@function m-sprite-width($sprite-dir ,$sprite-name){
+    $sprite-map: _m-sprite-get-map($sprite-dir);
+    $_file: sprite-file($sprite-map, $sprite-name);
+    $icon-width: image-width($_file);
+    @return remove-unit($icon-width) / $ppr * 1rem;
+}
+// 获取高 rem
+@function m-sprite-height($sprite-dir ,$sprite-name){
+    $sprite-map: _m-sprite-get-map($sprite-dir);
+    $_file: sprite-file($sprite-map, $sprite-name);
+    $icon-height: image-height($_file);
+    @return remove-unit($icon-height) / $ppr * 1rem;
+}
+// 获取单个精灵图
+@mixin m-sprite($sprite-dir ,$sprite-name ,$default-style: true ,$extend: false){
+    @if($extend){
+        @extend #{$extend};
+    }@else{
+        @if($default-style){
+            @include _m-sprite($sprite-dir);
+        }
+    }
+    background-position: _m-sprite-position($sprite-dir ,$sprite-name);
+}
+// example
+// @include all-sprite('icon') {
+//     vertical-align: top;
+// };
+// 生成所有精灵图
+@mixin m-sprite-all($sprite-dir ,$extend: false){
+    $sprite-map: _m-sprite-get-map($sprite-dir);
+    // 获取所有精灵图名称
+    $names: sprite-names($sprite-map);
+    $doc-names:();
+    @each $sprite-name in $names{
+        $doc-names: append($doc-names ,'.#{$sprite-name}' ,comma);
+    }
+    // 生成公共样式
+    #{$doc-names}{
+        @if($extend){
+            @extend #{$extend};
+        }@else{
+            @include _m-sprite($sprite-dir);
+        }
+
+        // 覆盖属性
+        @content;
+    }
+    // 设置宽高，并设置百分比定位
+    @each $sprite-name in $names{
+        .#{$sprite-name}{
+            width: m-sprite-width($sprite-dir ,$sprite-name);
+            height: m-sprite-height($sprite-dir ,$sprite-name);
+            @include m-sprite($sprite-dir ,$sprite-name ,false);
+        }
+        // 输出hover active 等 后缀
+        $str: $sprite-name;
+        $lastindex: -1;
+        $index: str-index($str ,$_pc-sprite-link);
+        @while($index != null){
+            $lastindex: $lastindex + $index;
+            $str: str-slice($str ,$index + 1);
+            $index: str-index($str ,$_pc-sprite-link);
+        }
+        @if((index($_pc-sprite-ps, $str) != null) and ($lastindex != -1)){
+            $class: str-slice($sprite-name ,1 ,$lastindex);
+            .#{$class}:#{$str}{
+                @include pc-sprite($sprite-dir ,$sprite-name ,false);
+            }
+        }
+    }
+}
