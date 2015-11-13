@@ -129,11 +129,17 @@ $_pc-sprite-ps: (hover active disabled);
  *         @include _m-sprite('support/icon');
  *     }
  */
-@mixin _m-sprite($sprite-dir){
+@mixin _m-sprite($sprite-dir ,$inline: false){
     $sprite-map: _m-sprite-get-map($sprite-dir);
     // 执行 sprite-url才会生成精灵图
     $url: sprite-url($sprite-map);
-    $background-size: remove-unit(image-width(sprite-path($sprite-map))) / $ppr * 1rem;
+    $filepath: sprite-path($sprite-map);
+    @if($inline){
+        // 获取精灵图相对 images_dir 的路径
+        $ofile: str-slice($url ,6 + str-length(image-url('' ,true ,false)) ,str-length($url) - 2);
+        $url: inline-image($ofile);
+    }
+    $background-size: remove-unit(image-width($filepath)) / $ppr * 1rem;
     background: $url 0/#{$background-size} no-repeat;
 }
 // 获取位置
@@ -175,12 +181,12 @@ $_pc-sprite-ps: (hover active disabled);
     @return remove-unit($icon-height) / $ppr * 1rem;
 }
 // 获取单个精灵图
-@mixin m-sprite($sprite-dir ,$sprite-name ,$default-style: true ,$extend: false){
+@mixin m-sprite($sprite-dir ,$sprite-name ,$default-style: true ,$extend: false ,$inline: false){
     @if($extend){
         @extend #{$extend};
     }@else{
         @if($default-style){
-            @include _m-sprite($sprite-dir);
+            @include _m-sprite($sprite-dir ,$inline);
         }
     }
     background-position: _m-sprite-position($sprite-dir ,$sprite-name);
