@@ -140,7 +140,8 @@ $_pc-sprite-ps: (hover active disabled);
         $url: inline-image($ofile);
     }
     $background-size: remove-unit(image-width($filepath)) / $ppr * 1rem;
-    background: $url 0/#{$background-size} no-repeat;
+    background: $url 0 0 no-repeat;
+    background-size: $background-size;
 }
 // 获取位置
 @function _m-sprite-position($sprite-dir ,$sprite-name){
